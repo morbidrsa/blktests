@@ -48,7 +48,7 @@ _remove_nvmet_port() {
 _create_nvmet_ns() {
 	local nvmet_subsystem="$1"
 	local nsid="$2"
-	local blkdev="$3"
+	local backstore="$3"
 	local uuid="00000000-0000-0000-0000-000000000000"
 	local subsys_path="${NVMET_CFS}/subsystems/${nvmet_subsystem}"
 	local ns_path="${subsys_path}/namespaces/${nsid}"
@@ -58,8 +58,11 @@ _create_nvmet_ns() {
 	fi
 
 	mkdir "${ns_path}"
-	printf "%s" "${blkdev}" > "${ns_path}/device_path"
+	printf "%s" "${backstore}" > "${ns_path}/device_path"
 	printf "%s" "${uuid}" > "${ns_path}/device_uuid"
+	if [[ -f ${backstore} ]]; then
+		printf 1 > "${ns_path}/buffered_io"
+	fi
 	printf 1 > "${ns_path}/enable"
 }
 
