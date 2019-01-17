@@ -1,0 +1,67 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-2.0+
+# Copyright (c) 2019 Johannes Thumshirn
+#
+# Test resize of a namespace with file-backed ns
+
+. tests/nvme/rc
+
+DESCRIPTION="test resize of a namespace with file-backed ns"
+QUICK=1
+
+requires() {
+	_have_program nvme && _have_modules loop nvme-loop nvmet && \
+		_have_configfs
+}
+
+test() {
+	echo "Running ${TEST_NAME}"
+
+	modprobe nvmet
+	modprobe nvme-loop
+
+	local port
+	local nvmedev
+	local namespace
+	local file_path="$TMPDIR/img"
+	local subsys_name="blktests-subsystem-1"
+
+	truncate -s 1G "${file_path}"
+
+	_create_nvmet_subsystem "${subsys_name}" "${file_path}" \
+		"91fdba0d-f87b-4c25-b80f-db7be1418b9e"
+	port="$(_create_nvmet_port "loop")"
+	_add_nvmet_subsys_to_port "${port}" "${subsys_name}"
+
+	nvme connect -t loop -n "${subsys_name}"
+
+	nvmedev="$(_find_nvme_loop_dev)"
+	namespace="${nvmedev}n1"
+	cat "/sys/block/${namespace}/uuid"
+	cat "/sys/block/${namespace}/wwid"
+
+	cat /proc/partitions | grep ${namespace} | awk '{ print $3 }'
+	blockdev --getsz /dev/${namespace}
+
+	echo "Resizing"
+	truncate -s +1G "${file_path}"
+	printf 0 > ${NVMET_CFS}/subsystems/${subsys_name}/namespaces/1/enable
+	printf 1 > ${NVMET_CFS}/subsystems/${subsys_name}/namespaces/1/enable
+	sleep 1
+
+	cat /proc/partitions | grep ${namespace} | awk '{ print $3 }'
+	blockdev --getsz /dev/${namespace}
+
+	nvme disconnect -n "${subsys_name}"
+
+	_remove_nvmet_subsystem_from_port "${port}" "${subsys_name}"
+	_remove_nvmet_subsystem "${subsys_name}"
+	_remove_nvmet_port "${port}"
+
+	rm -f "${file_path}"
+
+	modprobe -r nvme-loop
+	modprobe -r nvmet
+
+	echo "Test complete"
+}
