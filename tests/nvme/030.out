@@ -1,0 +1,18 @@
+Running nvme/030
+91fdba0d-f87b-4c25-b80f-db7be1418b9e
+uuid.91fdba0d-f87b-4c25-b80f-db7be1418b9e
+Check loop device
+1048576
+2097152
+Check NVMe Namespace
+1048576
+2097152
+Resizing
+Check loop device
+2097152
+4194304
+Check NVMe Namespace
+2097152
+4194304
+NQN:blktests-subsystem-1 disconnected 1 controller(s)
+Test complete
